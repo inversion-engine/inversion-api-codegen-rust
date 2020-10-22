@@ -1,0 +1,5 @@
+[workspace]
+members = [
+  "crates/inversion_api_codegen",
+  "crates/inversion_api_codeload",
+]
