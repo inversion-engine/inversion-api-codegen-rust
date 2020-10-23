@@ -3,3 +3,6 @@ members = [
   "crates/inversion_api_codegen",
   "crates/inversion_api_codeload",
 ]
+
+[patch.crates-io]
+inversion_api_spec = { path = "../inversion-api-spec" }
