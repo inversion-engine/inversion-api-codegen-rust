@@ -1,8 +1,15 @@
-[workspace]
-members = [
-  "crates/inversion_api_codegen",
-  "crates/inversion_api_codeload",
-]
+[package]
+name = "inversion_api_codegen"
+version = "0.0.1"
+authors = ["neonphog <neonphog@gmail.com>"]
+edition = "2018"
+
+[dependencies]
+Inflector = "0.11"
+inversion_api_spec = "0.0.1-alpha.1"
+proc-macro2 = "1"
+quote = "1"
+syn = { version = "1", features = [ "full" ] }
 
 [patch.crates-io]
 inversion_api_spec = { path = "../inversion-api-spec" }

@@ -8,6 +8,10 @@ use inversion_api_spec::*;
 use proc_macro2::*;
 use quote::*;
 
+#[macro_use]
+pub(crate) mod util;
+pub(crate) use util::*;
+
 /// If rustfmt is available on the path, will attempt to format a TokenStream.
 /// Otherwise, just returns `TokenStream::to_string()`.
 pub fn maybe_fmt(tokens: TokenStream) -> String {
@@ -60,24 +64,33 @@ fn gen_one_type(name: Ident, ty: &Type) -> TokenStream {
     match ty {
         Type::Bool { doc } => {
             let doc = doc.as_ref().map(|s| s.as_str()).unwrap_or("");
-            item_tokens.extend(quote! {
-                #[doc = #doc]
-                pub type #name = bool;
-            });
+            let t = q_type_def!(
+                q_doc!(doc),
+                q_vis!(pub),
+                q_id!(name),
+                q_type!(bool),
+            );
+            t.to_tokens(&mut item_tokens);
         }
         Type::U32 { doc } => {
             let doc = doc.as_ref().map(|s| s.as_str()).unwrap_or("");
-            item_tokens.extend(quote! {
-                #[doc = #doc]
-                pub type #name = u32;
-            });
+            let t = q_type_def!(
+                q_doc!(doc),
+                q_vis!(pub),
+                q_id!(name),
+                q_type!(u32),
+            );
+            t.to_tokens(&mut item_tokens);
         }
         Type::String { doc } => {
             let doc = doc.as_ref().map(|s| s.as_str()).unwrap_or("");
-            item_tokens.extend(quote! {
-                #[doc = #doc]
-                pub type #name = bool;
-            });
+            let t = q_type_def!(
+                q_doc!(doc),
+                q_vis!(pub),
+                q_id!(name),
+                q_type!(String),
+            );
+            t.to_tokens(&mut item_tokens);
         }
         Type::Tuple { doc, content } => {
             let doc = doc.as_ref().map(|s| s.as_str()).unwrap_or("");
@@ -183,7 +196,7 @@ fn gen_one_type(name: Ident, ty: &Type) -> TokenStream {
 }
 
 /// Generate inversion api spec types
-pub fn generate_types(doc: &IApiSpecDoc) -> TokenStream {
+pub fn generate_types(doc: &IApiSpecDoc) -> String {
     let spec = &doc.inversion_api_spec;
     let mut tokens = TokenStream::new();
     for (name, ty) in spec.types.iter() {
@@ -191,8 +204,24 @@ pub fn generate_types(doc: &IApiSpecDoc) -> TokenStream {
         let res = gen_one_type(name, ty);
         tokens.extend(res);
     }
-    quote! {
-        #tokens
+    let res = quote! {
+        mod dummy {
+            #tokens
+        }
+    };
+    let res = maybe_fmt(res);
+    match syn::parse_str::<syn::Item>(&res) {
+        Err(e) => {
+            panic!("{}\n{:?}", res, e);
+        }
+        Ok(sym) => {
+            match sym {
+                syn::Item::Mod(syn::ItemMod { content: Some((_, items)), .. }) => {
+                    maybe_fmt(quote!( #( #items )* ))
+                }
+                _ => unreachable!()
+            }
+        }
     }
 }
 
@@ -259,6 +288,6 @@ mod tests {
   }
 }"#;
         let data = IApiSpecDoc::parse(DATA).unwrap();
-        println!("{}", maybe_fmt(generate_types(&data)));
+        println!("{}", generate_types(&data));
     }
 }
